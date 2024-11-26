@@ -1,5 +1,4 @@
 import socket  # noqa: F401
-import io
 
 
 def main():
@@ -9,9 +8,13 @@ def main():
     # Uncomment this to pass the first stage
     #
     server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
-    conn, addr = server_socket.accept()  # wait for client
+    conn, _addr = server_socket.accept()  # wait for client
 
-    response = b"HTTP/1.1 200 OK\r\n\r\n"
+    match conn.recv(1024).decode("utf-8").split(" ")[1]:
+        case "/":
+            response = b"HTTP/1.1 200 OK\r\n\r\n"
+        case _:
+            response = b"HTTP/1.1 404 Not Found\r\n\r\n"
 
     conn.send(response)
 
