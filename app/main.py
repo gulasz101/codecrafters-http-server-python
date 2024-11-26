@@ -17,12 +17,12 @@ def main():
         response = "\r\n".join(
             {
                 "HTTP/1.1 200 OK",
-                "Content-Type: text/plain",
-                "Content-Length: " + str(response_body.__len__()),
+                "Content-Type: text/plain\r\nContent-Length: "
+                + str(response_body.__len__())
+                + "\r\n",
                 response_body,
             }
-        )
-        response = b"HTTP/1.1 200 OK\r\n\r\n"
+        ).encode("utf-8")
     else:
         response = b"HTTP/1.1 404 Not Found\r\n\r\n"
 
