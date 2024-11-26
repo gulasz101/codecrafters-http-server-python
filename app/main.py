@@ -1,4 +1,5 @@
 import socket  # noqa: F401
+import io
 
 
 def main():
@@ -8,7 +9,11 @@ def main():
     # Uncomment this to pass the first stage
     #
     server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
-    server_socket.accept()  # wait for client
+    conn, addr = server_socket.accept()  # wait for client
+
+    response = b"HTTP/1.1 200 OK\r\n\r\n"
+
+    conn.send(response)
 
 
 if __name__ == "__main__":
