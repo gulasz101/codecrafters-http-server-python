@@ -18,10 +18,29 @@ def main():
     server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
     conn, _addr = server_socket.accept()  # wait for client
 
-    request_uri = conn.recv(1024).decode("utf-8").split(" ")[1]
+    request = conn.recv(1024).decode("utf-8")
+    request_uri = request.split(" ")[1]
     match REqual(request_uri):
         case r"^/$":
             response = b"HTTP/1.1 200 OK\r\n\r\n"
+        case r"^/user-agent$":
+            request_pieces = request.split("\r\n")
+            # unset unwanted parts
+            request_pieces.pop()
+            request_pieces.pop()
+            request_pieces.pop(0)
+            request_pieces = map(lambda x: x.split(" "), request_pieces)
+            user_agent = dict(request_pieces)["User-Agent:"]
+
+            response = "\r\n".join(
+                [
+                    "HTTP/1.1 200 OK",
+                    "Content-Type: text/plain\r\nContent-Length: "
+                    + str(user_agent.__len__())
+                    + "\r\n",
+                    user_agent,
+                ]
+            ).encode("utf-8")
         case r"^/([a-zA-Z])*/([a-zA-Z])*":
             response_body = request_uri.split("/")[2]
             response = "\r\n".join(
