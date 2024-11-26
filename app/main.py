@@ -22,7 +22,7 @@ def handle_connection(conn, directory=None):
             file_name = request_uri.split("/")[2]
 
             try:
-                file_handler = io.open(str(directory) + "/" + file_name)
+                file_handler = io.open(str(directory) + file_name)
                 file_contents = file_handler.read()
 
                 response = "\r\n".join(
