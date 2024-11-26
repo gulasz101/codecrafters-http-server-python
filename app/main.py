@@ -2,6 +2,13 @@ import socket  # noqa: F401
 import re
 
 
+class REqual(str):
+    "Override str.__eq__ to match a regex pattern."
+
+    def __eq__(self, pattern):
+        return bool(re.fullmatch(pattern, self))
+
+
 def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     # print("Logs from your program will appear here!")
@@ -12,20 +19,22 @@ def main():
     conn, _addr = server_socket.accept()  # wait for client
 
     request_uri = conn.recv(1024).decode("utf-8").split(" ")[1]
-    if re.match("^/([a-zA-Z])*/([a-zA-Z])*", request_uri):
-        response_body = request_uri.split("/")[2]
-        response = "\r\n".join(
-            [
-                "HTTP/1.1 200 OK",
-                "Content-Type: text/plain\r\nContent-Length: "
-                + str(response_body.__len__())
-                + "\r\n",
-                response_body,
-            ]
-        ).encode("utf-8")
-        print(response)
-    else:
-        response = b"HTTP/1.1 404 Not Found\r\n\r\n"
+    match REqual(request_uri):
+        case r"^/$":
+            response = b"HTTP/1.1 200 OK\r\n\r\n"
+        case r"^/([a-zA-Z])*/([a-zA-Z])*":
+            response_body = request_uri.split("/")[2]
+            response = "\r\n".join(
+                [
+                    "HTTP/1.1 200 OK",
+                    "Content-Type: text/plain\r\nContent-Length: "
+                    + str(response_body.__len__())
+                    + "\r\n",
+                    response_body,
+                ]
+            ).encode("utf-8")
+        case _:
+            response = b"HTTP/1.1 404 Not Found\r\n\r\n"
 
     conn.send(response)
 
