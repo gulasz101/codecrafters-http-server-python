@@ -76,7 +76,7 @@ def handle_connection(conn, directory=None):
 def main():
     directory = None
     try:
-        arg = sys.argv[1].strip("-").split("=")
+        arg = sys.argv[1].strip("-").split(" ")
         arg_name = arg[0]
         arg_value = arg[1]
 
