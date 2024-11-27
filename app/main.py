@@ -18,7 +18,7 @@ def handle_connection(conn, directory=None):
     match REqual(request_uri):
         case r"^/$":
             response = b"HTTP/1.1 200 OK\r\n\r\n"
-        case r"^/files/([a-zA-Z])*":
+        case r"^/files/(\S)*":
             file_name = request_uri.split("/")[2]
 
             try:
