@@ -127,7 +127,7 @@ def handle_connection(conn: socket.socket, directory=None):
             print(response_content)
             response_headers = {
                 HttpHeader.CONTENT_TYPE: "text/plain",
-                HttpHeader.CONTENT_LENGTH: str(response_content.__len__()),
+                HttpHeader.CONTENT_LENGTH: str(len(response_content)),
             }
             if (
                 HttpHeader.ACCEPT_ENCODING in request_header
@@ -139,19 +139,15 @@ def handle_connection(conn: socket.socket, directory=None):
 
                 response_content = buffer.getvalue()
                 response_headers.update({HttpHeader.CONTENT_ENCODING: "gzip"})
+                response_headers[HttpHeader.CONTENT_LENGTH] = str(len(response_content))
 
             print(response_content)
+            formatted_headers = "\r\n".join(
+                f"{key.value}: {value}" for key, value in response_headers.items()
+            )
+
             response = (
-                "\r\n".join(
-                    [
-                        "HTTP/1.1 200 OK",
-                        "".join(
-                            f"{key.value}: {value}\r\n"
-                            for key, value in response_headers.items()
-                        )
-                        + "\r\n",
-                    ]
-                ).encode("utf-8")
+                f"HTTP/1.1 200 OK\r\n{formatted_headers}\r\n\r\n".encode("utf-8")
                 + response_content
             )
 
