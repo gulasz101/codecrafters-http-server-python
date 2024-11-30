@@ -45,10 +45,10 @@ def handle_files_post(full_file_path: str, request_body: str) -> bytes:
         file_handler.write(request_body)
 
         file_handler.close()
-        response = b"HTTP/1.1 200 OK\r\n\r\n"
+        response = b"HTTP/1.1 201 Created\r\n\r\n"
 
     except IOError:
-        response = b"HTTP/1.1 404 Not Found\r\n\r\n"
+        response = b"HTTP/1.1 400 Bad Request\r\n\r\n"
 
     return response
 
