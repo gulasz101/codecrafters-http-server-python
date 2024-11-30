@@ -3,6 +3,12 @@ import re
 from threading import Thread
 import sys
 import io
+from enum import Enum
+
+
+class HttpMethod(Enum):
+    GET = "GET"
+    POST = "POST"
 
 
 class REqual(str):
@@ -12,31 +18,93 @@ class REqual(str):
         return bool(re.fullmatch(pattern, self))
 
 
-def handle_connection(conn, directory=None):
-    request = conn.recv(1024).decode("utf-8")
-    request_uri = request.split(" ")[1]
+def handle_files_get(full_file_path: str):
+    try:
+        file_handler = io.open(full_file_path)
+        file_contents = file_handler.read()
+
+        response = "\r\n".join(
+            [
+                "HTTP/1.1 200 OK",
+                "Content-Type: application/octet-stream\r\nContent-Length: "
+                + str(file_contents.__len__())
+                + "\r\n",
+                file_contents,
+            ]
+        ).encode("utf-8")
+
+    except IOError:
+        response = b"HTTP/1.1 404 Not Found\r\n\r\n"
+
+    return response
+
+
+def handle_files_post(full_file_path: str, request_body: str) -> bytes:
+    try:
+        file_handler = io.open(full_file_path, "w")
+        file_handler.write(request_body)
+
+        file_handler.close()
+        response = b"HTTP/1.1 200 OK\r\n\r\n"
+
+    except IOError:
+        response = b"HTTP/1.1 404 Not Found\r\n\r\n"
+
+    return response
+
+
+def read_full_request(conn: socket.socket) -> str:
+    MSGLEN = 1024
+    chunks = []
+    bytes_received = 0
+    while True:
+        chunk = conn.recv(MSGLEN)
+        if chunk == b"":
+            raise RuntimeError("socket connection broken")
+
+        chunks.append(chunk.decode("utf-8"))
+
+        bytes_received = len(chunk)
+
+        if bytes_received < MSGLEN:
+            break
+    return "".join(chunks)
+
+
+def read_request_method(request: str) -> HttpMethod:
+    try:
+        return HttpMethod(request.split(" ")[0])
+    except ValueError:
+        raise ValueError("Invalid request method")
+
+
+def read_request_uri(request: str) -> str:
+    return request.split(" ")[1]
+
+
+def read_request_body(request: str) -> str:
+    return request.split("\r\n").pop()
+
+
+def handle_connection(conn: socket.socket, directory=None):
+    request = read_full_request(conn)
+    request_method = read_request_method(request)
+    request_body = read_request_body(request)
+    request_uri = read_request_uri(request)
+
     match REqual(request_uri):
         case r"^/$":
             response = b"HTTP/1.1 200 OK\r\n\r\n"
         case r"^/files/(\S)*":
             file_name = request_uri.split("/")[2]
-
-            try:
-                file_handler = io.open(str(directory) + file_name)
-                file_contents = file_handler.read()
-
-                response = "\r\n".join(
-                    [
-                        "HTTP/1.1 200 OK",
-                        "Content-Type: application/octet-stream\r\nContent-Length: "
-                        + str(file_contents.__len__())
-                        + "\r\n",
-                        file_contents,
-                    ]
-                ).encode("utf-8")
-
-            except IOError:
-                response = b"HTTP/1.1 404 Not Found\r\n\r\n"
+            full_file_path = str(directory) + file_name
+            match request_method:
+                case HttpMethod.GET:
+                    print("handling GET /files")
+                    response = handle_files_get(full_file_path)
+                case HttpMethod.POST:
+                    print("handling POST /files")
+                    response = handle_files_post(full_file_path, request_body)
         case r"^/user-agent$":
             request_pieces = request.split("\r\n")
             # unset unwanted parts
