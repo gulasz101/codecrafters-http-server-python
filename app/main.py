@@ -124,6 +124,7 @@ def handle_connection(conn: socket.socket, directory=None):
             response = b"HTTP/1.1 200 OK\r\n\r\n"
         case r"^/echo/(\S)*":
             response_content = request_uri.split("/")[2].encode("utf-8")
+            print(response_content)
             response_headers = {
                 HttpHeader.CONTENT_TYPE: "text/plain",
                 HttpHeader.CONTENT_LENGTH: str(response_content.__len__()),
@@ -132,9 +133,14 @@ def handle_connection(conn: socket.socket, directory=None):
                 HttpHeader.ACCEPT_ENCODING in request_header
                 and "gzip" in request_header[HttpHeader.ACCEPT_ENCODING].split(", ")
             ):
-                response_content = gzip.compress(response_content)
+                buffer = io.BytesIO()
+                with gzip.GzipFile(fileobj=buffer, mode="wb") as gz:
+                    gz.write(response_content)
+
+                response_content = buffer.getvalue()
                 response_headers.update({HttpHeader.CONTENT_ENCODING: "gzip"})
 
+            print(response_content)
             response = (
                 "\r\n".join(
                     [
