@@ -130,12 +130,11 @@ def handle_connection(conn: socket.socket, directory=None):
             }
             if (
                 HttpHeader.ACCEPT_ENCODING in request_header
-                and request_header[HttpHeader.ACCEPT_ENCODING] == "gzip"
+                and "gzip" in request_header[HttpHeader.ACCEPT_ENCODING].split(", ")
             ):
                 response_content = gzip.compress(response_content)
                 response_headers.update({HttpHeader.CONTENT_ENCODING: "gzip"})
 
-            print(response_headers)
             response = (
                 "\r\n".join(
                     [
@@ -149,7 +148,6 @@ def handle_connection(conn: socket.socket, directory=None):
                 ).encode("utf-8")
                 + response_content
             )
-            print(response)
 
         case r"^/files/(\S)*":
             file_name = request_uri.split("/")[2]
