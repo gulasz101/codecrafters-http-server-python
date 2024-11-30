@@ -1,9 +1,11 @@
-import socket  # noqa: F401
-import re
-from threading import Thread
-import sys
 import io
+import re
+import socket  # noqa: F401
+import sys
 from enum import Enum
+from threading import Thread
+
+import gzip
 
 
 class HttpMethod(Enum):
@@ -86,15 +88,69 @@ def read_request_body(request: str) -> str:
     return request.split("\r\n").pop()
 
 
+class HttpHeader(Enum):
+    CONTENT_TYPE = "Content-Type"
+    CONTENT_LENGTH = "Content-Length"
+    CONTENT_ENCODING = "Content-Encoding"
+    USER_AGENT = "User-Agent"
+    ACCEPT = "Accept"
+    ACCEPT_ENCODING = "Accept-Encoding"
+
+
+def read_request_headers(request: str) -> dict[HttpHeader, str]:
+    headers = {}
+
+    for line in request.split("\r\n"):
+        if ": " in line:
+            key, value = line.split(": ")
+            try:
+                header = HttpHeader(key)
+                headers[header] = value
+            except ValueError:
+                # ignore as it is not header
+                continue
+    return headers
+
+
 def handle_connection(conn: socket.socket, directory=None):
     request = read_full_request(conn)
     request_method = read_request_method(request)
     request_body = read_request_body(request)
     request_uri = read_request_uri(request)
+    request_header = read_request_headers(request)
 
     match REqual(request_uri):
         case r"^/$":
             response = b"HTTP/1.1 200 OK\r\n\r\n"
+        case r"^/echo/(\S)*":
+            response_content = request_uri.split("/")[2].encode("utf-8")
+            response_headers = {
+                HttpHeader.CONTENT_TYPE: "text/plain",
+                HttpHeader.CONTENT_LENGTH: str(response_content.__len__()),
+            }
+            if (
+                HttpHeader.ACCEPT_ENCODING in request_header
+                and request_header[HttpHeader.ACCEPT_ENCODING] == "gzip"
+            ):
+                response_content = gzip.compress(response_content)
+                response_headers.update({HttpHeader.CONTENT_ENCODING: "gzip"})
+
+            print(response_headers)
+            response = (
+                "\r\n".join(
+                    [
+                        "HTTP/1.1 200 OK",
+                        "".join(
+                            f"{key.value}: {value}\r\n"
+                            for key, value in response_headers.items()
+                        )
+                        + "\r\n",
+                    ]
+                ).encode("utf-8")
+                + response_content
+            )
+            print(response)
+
         case r"^/files/(\S)*":
             file_name = request_uri.split("/")[2]
             full_file_path = str(directory) + file_name
