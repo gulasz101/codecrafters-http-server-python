@@ -71,7 +71,7 @@ def handle_echo(request_uri: str, request_headers: dict[HttpHeader, str]) -> byt
 def handle_user_agent(request_headers: dict[HttpHeader, str]) -> bytes:
     user_agent = request_headers[HttpHeader.USER_AGENT]
 
-    formatted_headers = "\n\r".join(
+    formatted_headers = "\r\n".join(
         f"{key.value}: {value}"
         for key, value in {
             HttpHeader.CONTENT_TYPE: "text/plain",
@@ -79,13 +79,13 @@ def handle_user_agent(request_headers: dict[HttpHeader, str]) -> bytes:
         }.items()
     )
 
-    return f"HTTP/1.1 200 OK\r\n{formatted_headers}\r\n{user_agent}".encode("utf-8")
+    return f"HTTP/1.1 200 OK\r\n{formatted_headers}\r\n\r\n{user_agent}".encode("utf-8")
 
 
 def handle_any_any_request(request_uri: str) -> bytes:
     response_body = request_uri.split("/")[2]
 
-    formatted_headers = "\n\r".join(
+    formatted_headers = "\r\n".join(
         f"{key.value}: {value}"
         for key, value in {
             HttpHeader.CONTENT_TYPE: "text/plain",
@@ -93,4 +93,6 @@ def handle_any_any_request(request_uri: str) -> bytes:
         }.items()
     )
 
-    return f"HTTP/1.1 200 OK\r\n{formatted_headers}\r\n{response_body}".encode("utf-8")
+    return f"HTTP/1.1 200 OK\r\n{formatted_headers}\r\n\r\n{response_body}".encode(
+        "utf-8"
+    )

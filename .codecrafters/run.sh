@@ -7,5 +7,5 @@
 # Learn more: https://codecrafters.io/program-interface
 
 set -e # Exit on failure
-
-exec pipenv run python3 -m src.http_server "$@"
+export PYTHONPATH=src
+exec pipenv run python3 -m http_server "$@"
